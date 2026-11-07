@@ -203,28 +203,6 @@ https://domain/r/VHN1.html?r=DVvg68eutKaf..."
         />
         Tự động mở app khi có kết quả
       </label>
-      <label
-        style="
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-top: 6px;
-          font-size: 13px;
-          color: var(--muted);
-        "
-      >
-        <input
-          type="checkbox"
-          id="autoClipboard"
-          checked
-          style="width: 16px; height: 16px"
-        />
-        Tự đọc clipboard khi quay lại trang này
-      </label>
-      <div
-        id="clipHint"
-        style="font-size: 11px; color: var(--muted); margin-top: 4px"
-      ></div>
       <div id="result" class="result"></div>
     </div>
     <script>
@@ -365,38 +343,6 @@ https://domain/r/VHN1.html?r=DVvg68eutKaf..."
         .addEventListener("keydown", function (e) {
           if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) render();
         });
-
-      let lastClipboardText = "";
-      async function tryReadClipboard() {
-        if (!document.getElementById("autoClipboard").checked) return;
-        if (!navigator.clipboard || !navigator.clipboard.readText) return;
-        try {
-          const text = await navigator.clipboard.readText();
-          const hint = document.getElementById("clipHint");
-          if (text && text.trim() && text !== lastClipboardText) {
-            lastClipboardText = text;
-            const roomId = extractRoomId(text);
-            if (roomId) {
-              document.getElementById("input").value = text;
-              render();
-              hint.textContent = "Đã tự đọc clipboard và xử lý.";
-            } else {
-              hint.textContent =
-                "Đã đọc clipboard nhưng không tìm thấy link hợp lệ.";
-            }
-          }
-        } catch (e) {
-          document.getElementById("clipHint").textContent =
-            "Chưa được cấp quyền đọc clipboard. Hãy bấm vào trang rồi thử lại, hoặc cho phép quyền clipboard cho trang này.";
-        }
-      }
-      // khi tab này được focus lại (ví dụ bạn vừa copy ở app khác rồi quay lại)
-      window.addEventListener("focus", tryReadClipboard);
-      document.addEventListener("visibilitychange", function () {
-        if (document.visibilityState === "visible") tryReadClipboard();
-      });
-      // thử ngay khi trang vừa tải (nếu đã có quyền từ trước)
-      tryReadClipboard();
     </script>
   </body>
 </html>
