@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lấy link SSK từ link TikTok</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<style>
+:root{
+  --bg:#f5f5f7; --card:#ffffff; --text:#111; --muted:#666;
+  --accent1:#25f4ee; --accent2:#ff2c55; --border:#e2e2e6;
+  --ok-bg:#e8fbf9; --ok-text:#0c8a82; --err-bg:#fff0f2; --err-text:#c81d3f;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0a0a0a; --card:#141416; --text:#f2f2f2; --muted:#999;
+    --border:#2a2a2e; --ok-bg:#0c2524; --ok-text:#25f4ee; --err-bg:#2a0f14; --err-text:#ff667f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0a0a0a; --card:#141416; --text:#f2f2f2; --muted:#999;
+  --border:#2a2a2e; --ok-bg:#0c2524; --ok-text:#25f4ee; --err-bg:#2a0f14; --err-text:#ff667f;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);}
+body{min-height:100vh;display:flex;justify-content:center;align-items:flex-start;padding:32px 16px;}
+.card{width:100%;max-width:480px;background:var(--card);border:1px solid var(--border);
+  border-radius:18px;padding:24px;box-shadow:0 8px 30px rgba(0,0,0,.08);}
+h1{font-size:19px;margin:0 0 4px;
+  background:linear-gradient(90deg,var(--accent1),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+p.sub{margin:0 0 18px;color:var(--muted);font-size:13px;}
+textarea{width:100%;min-height:80px;padding:12px;border-radius:12px;border:1px solid var(--border);
+  background:transparent;color:var(--text);font-size:14px;resize:vertical;font-family:inherit;}
+button{margin-top:12px;width:100%;padding:13px;border:0;border-radius:12px;font-weight:700;
+  font-size:15px;cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--accent1),#1677ff);}
+button:active{transform:scale(.98)}
+.result{margin-top:16px;padding:14px;border-radius:12px;font-size:13px;word-break:break-all;display:none;}
+.result.ok{display:block;background:var(--ok-bg);color:var(--ok-text);border:1px solid var(--ok-text);}
+.result.err{display:block;background:var(--err-bg);color:var(--err-text);border:1px solid var(--err-text);}
+.row{display:flex;gap:8px;align-items:center;margin-top:8px;}
+.row code{flex:1;min-width:0;overflow-wrap:anywhere;font-family:monospace;font-size:12.5px;}
+.copybtn{flex-shrink:0;border:0;border-radius:8px;padding:8px 10px;font-size:12px;font-weight:700;
+  background:var(--accent2);color:#fff;cursor:pointer;margin:0;}
+.label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:10px;}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Lấy link SSK</h1>
+  <p class="sub">Dán link TikTok Live, hoặc link có tham số ?r= đã mã hóa, để lấy link mở app.</p>
+  <textarea id="input" placeholder="https://www.tiktok.com/@abc/live?room_id=712345...
+hoặc
+https://domain/r/VHN1.html?r=DVvg68eutKaf..."></textarea>
+  <button id="btn">Lấy link SSK</button>
+  <div id="result" class="result"></div>
+</div>
+<script>
+const AES_KEY_HEX = "c2272f29065fcfab89e4d94f2d7d89f3e9ba401a1ea05fd2480aa9d999b41144";
+const AES_IV_HEX  = "d934c1ec1d95acfe897511423e792f06";
+
+function aesDecrypt(encrypted){
+  if(!encrypted) return "";
+  try{
+    let b64 = String(encrypted).replace(/-/g, "+").replace(/_/g, "/");
+    while(b64.length % 4) b64 += "=";
+    const key = CryptoJS.enc.Hex.parse(AES_KEY_HEX);
+    const iv  = CryptoJS.enc.Hex.parse(AES_IV_HEX);
+    const decrypted = CryptoJS.AES.decrypt(b64, key, {
+      iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7
+    });
+    return decrypted.toString(CryptoJS.enc.Utf8);
+  }catch(e){
+    return "";
+  }
+}
+
+function extractRParam(text){
+  // nếu người dùng dán cả URL, lấy phần sau ?r= hoặc &r=
+  let m = text.match(/[?&]r=([^&\s]+)/i);
+  if(m) return decodeURIComponent(m[1]);
+  // hoặc dán thẳng chuỗi đã mã hóa (không có / và không toàn số)
+  if(/^[A-Za-z0-9_-]{16,}$/.test(text.trim()) && !/^\d+$/.test(text.trim())){
+    return text.trim();
+  }
+  return null;
+}
+
+function extractRoomId(text){
+  text = (text || "").trim();
+  if(!text) return null;
+
+  // ưu tiên tham số ?r= đã mã hóa AES (giống trang xác minh thiết bị)
+  const rParam = extractRParam(text);
+  if(rParam){
+    const decoded = aesDecrypt(rParam);
+    if(decoded && /^\d{10,}$/.test(decoded)) return decoded;
+  }
+
+  let m = text.match(/room_id=(\d+)/i);
+  if(m) return m[1];
+  m = text.match(/\/live\/(\d+)/i);
+  if(m) return m[1];
+  // trường hợp người dùng dán thẳng room id (chỉ toàn số dài)
+  if(/^\d{10,}$/.test(text)) return text;
+  return null;
+}
+function render(){
+  const val = document.getElementById("input").value;
+  const box = document.getElementById("result");
+  const roomId = extractRoomId(val);
+  if(!roomId){
+    box.className = "result err";
+    box.textContent = "Không tìm thấy room_id trong link. Kiểm tra lại link đã dán.";
+    return;
+  }
+  const ssk = "snssdk1180://live?room_id=" + encodeURIComponent(roomId);
+  box.className = "result ok";
+  box.innerHTML =
+    '<div class="label">Room ID</div><code>' + roomId + '</code>' +
+    '<div class="label">Link SSK</div>' +
+    '<div class="row"><code id="sskLink">' + ssk + '</code>' +
+    '<button class="copybtn" id="copyBtn">COPY</button></div>' +
+    '<div class="label">Mở trực tiếp</div>' +
+    '<div class="row"><a href="' + ssk + '" style="color:inherit">' + ssk + ' (bấm để mở)</a></div>';
+
+  document.getElementById("copyBtn").addEventListener("click", async function(){
+    try{
+      await navigator.clipboard.writeText(ssk);
+      this.textContent = "ĐÃ COPY";
+      setTimeout(() => { this.textContent = "COPY"; }, 1200);
+    }catch(e){
+      const ta = document.createElement("textarea");
+      ta.value = ssk; ta.style.cssText = "position:fixed;opacity:0";
+      document.body.appendChild(ta); ta.select();
+      document.execCommand("copy"); ta.remove();
+    }
+  });
+}
+document.getElementById("btn").addEventListener("click", render);
+document.getElementById("input").addEventListener("keydown", function(e){
+  if(e.key === "Enter" && (e.ctrlKey || e.metaKey)) render();
+});
+</script>
+</body>
+</html>
