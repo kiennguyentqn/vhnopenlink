@@ -161,6 +161,7 @@
         color: #fff;
         cursor: pointer;
         margin: 0;
+        width: auto;
       }
       .label {
         font-size: 11px;
@@ -261,10 +262,17 @@ https://domain/r/VHN1.html?r=DVvg68eutKaf..."
         if (/^\d{10,}$/.test(text)) return text;
         return null;
       }
+
       let lastAutoOpened = null;
+
       function render() {
-        const val = document.getElementById("input").value;
+        const input = document.getElementById("input");
+        const val = input.value;
         const box = document.getElementById("result");
+
+        // Ô nhập trống thì không làm gì, giữ nguyên kết quả cũ
+        if (!val.trim()) return;
+
         const roomId = extractRoomId(val);
         if (!roomId) {
           box.className = "result err";
@@ -321,7 +329,7 @@ https://domain/r/VHN1.html?r=DVvg68eutKaf..."
         wireCopy("copySsk", ssk);
         wireCopy("copyShare", shareLink);
 
-        document.getElementById("input").value = "";
+        input.value = "";
 
         if (
           document.getElementById("autoOpen").checked &&
@@ -333,11 +341,10 @@ https://domain/r/VHN1.html?r=DVvg68eutKaf..."
           }, 300);
         }
       }
+
       document.getElementById("btn").addEventListener("click", render);
+      // Sự kiện "input" đã bao gồm cả thao tác dán, nên không cần listener "paste"
       document.getElementById("input").addEventListener("input", render);
-      document.getElementById("input").addEventListener("paste", function () {
-        setTimeout(render, 0);
-      });
       document
         .getElementById("input")
         .addEventListener("keydown", function (e) {
