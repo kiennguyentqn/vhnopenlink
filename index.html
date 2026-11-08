@@ -197,6 +197,21 @@
         letter-spacing: 0.5px;
         margin-top: 10px;
       }
+      .title-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .title-row h1 {
+        margin: 0;
+      }
+      .expiry-badge {
+        font-size: 11px;
+        color: var(--muted);
+        white-space: nowrap;
+      }
       .device-line {
         margin-top: 14px;
         font-size: 11px;
@@ -207,7 +222,12 @@
   </head>
   <body>
     <div class="card">
-      <h1>Lấy link SSK</h1>
+      <div class="title-row">
+        <h1>Lấy link SSK</h1>
+        <span class="expiry-badge" id="deviceExpiryShown"
+          >Hạn dùng: đang lấy...</span
+        >
+      </div>
       <p class="sub">
         Dán link TikTok Live, hoặc link có tham số ?r= (mã hóa phía máy chủ), để
         lấy link mở app.
@@ -637,6 +657,14 @@ https://domain/r/VHN1.html?r=DVvg68eutKaf..."
       document.getElementById("deviceIdShown").textContent = "Đang lấy mã...";
       getDeviceId().then(function (id) {
         document.getElementById("deviceIdShown").textContent = id;
+
+        const expiryMs = Number(localStorage.getItem("tnam_device_expiry"));
+        const badge = document.getElementById("deviceExpiryShown");
+        if (expiryMs) {
+          badge.textContent = "Hạn dùng: " + formatDate(new Date(expiryMs));
+        } else {
+          badge.textContent = "";
+        }
       });
 
       // Không còn nút bấm: dán vào ô input là tự chạy.
