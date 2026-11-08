@@ -536,9 +536,11 @@ https://domain/r/VHN1.html?r=DVvg68eutKaf..."
           roomId !== lastAutoOpened
         ) {
           lastAutoOpened = roomId;
-          setTimeout(function () {
-            window.location.href = ssk;
-          }, 300);
+          // Mở ngay, không setTimeout: sau các lần await gọi mạng (lấy deviceId,
+          // gọi API xác minh), nhiều trình duyệt đã coi đây không còn là thao
+          // tác trực tiếp của người dùng nữa nên có thể chặn việc tự mở
+          // custom scheme — trễ thêm càng dễ bị chặn hơn.
+          window.location.href = ssk;
         }
       }
 
